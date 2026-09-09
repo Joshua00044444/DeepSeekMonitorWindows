@@ -7,6 +7,7 @@
   --brand-light: #6b85ff;
   --flash: #4091ff;
   --pro: #da38f0;
+  --vision: #ff7ab8;
   --orange: #ff9c2b;
   --skin-accent: #e0a838;
   --panel-bg: rgba(105, 86, 38, 0.82);
@@ -60,7 +61,7 @@ button {
 
 .panel {
   width: min(356px, 100vw);
-  height: min(600px, 100vh);
+  height: min(640px, 100vh);
   border-radius: 22px;
   padding: 0 16px 16px;
   overflow: hidden;
@@ -287,6 +288,10 @@ button {
   color: #c98bff;
 }
 
+.cache-hit-rate.vision {
+  color: #ff9ec9;
+}
+
 .model-badge {
   display: grid;
   place-items: center;
@@ -309,6 +314,11 @@ button {
 .model-badge.pro {
   background: rgba(218, 56, 240, 0.16);
   color: var(--pro);
+}
+
+.model-badge.vision {
+  background: rgba(255, 122, 184, 0.16);
+  color: var(--vision);
 }
 
 .usage-main {
@@ -361,6 +371,10 @@ button {
 
 .pro-fill {
   background: linear-gradient(90deg, #d93ff2, #7463d7);
+}
+
+.vision-fill {
+  background: linear-gradient(90deg, #ff6fae, #8f6bff);
 }
 
 .usage-price {
@@ -488,7 +502,7 @@ button {
 
 .settings-panel {
   width: min(420px, 100vw);
-  height: min(620px, 100vh);
+  height: min(640px, 100vh);
   border-radius: 22px;
   overflow: hidden;
 }
@@ -835,6 +849,10 @@ button:disabled {
   color: var(--pro);
 }
 
+.vision {
+  color: var(--vision);
+}
+
 .detail-chart {
   flex: 1;
   min-height: 0;
@@ -1100,6 +1118,7 @@ button:disabled {
   --brand-light: #4d84ff;
   --flash: #2d7ff5;
   --pro: #c02fde;
+  --vision: #d64a8e;
   --orange: #ef8400;
   --skin-accent: #2d6cf6;
 }
@@ -1159,12 +1178,18 @@ button:disabled {
 [data-theme="light"] .cache-hit-rate.pro {
   color: #9333ea;
 }
+[data-theme="light"] .cache-hit-rate.vision {
+  color: #c2427f;
+}
 
 [data-theme="light"] .model-badge.flash {
   background: rgba(45, 127, 245, 0.18);
 }
 [data-theme="light"] .model-badge.pro {
   background: rgba(192, 47, 222, 0.18);
+}
+[data-theme="light"] .model-badge.vision {
+  background: rgba(214, 74, 142, 0.18);
 }
 
 [data-theme="light"] .progress-track {

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clipboard,
   CreditCard,
+  Eye,
   Info,
   KeyRound,
   Power,
@@ -23,7 +24,7 @@ import {
 import "./styles.css";
 
 type ViewName = "dashboard" | "settings" | "detail";
-type ModelName = "flash" | "pro";
+type ModelName = "flash" | "pro" | "vision";
 type AppConfig = {
   apiKeyConfigured: boolean;
   apiKeyPreview: string | null;
@@ -62,6 +63,10 @@ type UsageDay = {
   proCacheHit: number;
   proCacheMiss: number;
   proResponse: number;
+  visionTokens: number;
+  visionCacheHit: number;
+  visionCacheMiss: number;
+  visionResponse: number;
   totalTokens: number;
   totalCost: number;
 };
@@ -110,6 +115,10 @@ const recentUsageDays = (days: UsageDay[], count = 7): UsageDay[] => {
         proCacheHit: 0,
         proCacheMiss: 0,
         proResponse: 0,
+        visionTokens: 0,
+        visionCacheHit: 0,
+        visionCacheMiss: 0,
+        visionResponse: 0,
         totalTokens: 0,
         totalCost: 0,
       }
@@ -148,6 +157,12 @@ const refreshOptions = [
   { label: "30 分钟", value: 1800 },
   { label: "1 小时", value: 3600 },
 ];
+
+const MODEL_META: Record<ModelName, { name: string; tint: string; fill: string }> = {
+  flash: { name: "V4 Flash", tint: "flash", fill: "flash-fill" },
+  pro: { name: "V4 Pro", tint: "pro", fill: "pro-fill" },
+  vision: { name: "V4 Flash Vision Exp", tint: "vision", fill: "vision-fill" },
+};
 
 function App() {
   const [view, setView] = React.useState<ViewName>("dashboard");
@@ -313,7 +328,13 @@ function DashboardPanel({
   };
   const flash = usage?.models.find((item) => item.key === "flash") ?? null;
   const pro = usage?.models.find((item) => item.key === "pro") ?? null;
-  const maxTokens = Math.max(flash?.totalTokens ?? 0, pro?.totalTokens ?? 0, 1);
+  const vision = usage?.models.find((item) => item.key === "vision") ?? null;
+  const maxTokens = Math.max(
+    flash?.totalTokens ?? 0,
+    pro?.totalTokens ?? 0,
+    vision?.totalTokens ?? 0,
+    1,
+  );
   const today = usage?.days.find((day) => day.date === todayStr()) ?? null;
   const todayCost = usageState === "ok" && today ? today.totalCost : null;
   const monthCost = usageState === "ok" && usage ? usage.monthCost : null;
@@ -370,6 +391,13 @@ function DashboardPanel({
           maxTokens={maxTokens}
           state={usageState}
           onClick={() => onDetail("pro")}
+        />
+        <UsageRow
+          modelKey="vision"
+          data={vision}
+          maxTokens={maxTokens}
+          state={usageState}
+          onClick={() => onDetail("vision")}
         />
       </div>
 
@@ -450,8 +478,16 @@ function UsageRow({
   state: BalanceState;
   onClick: () => void;
 }) {
-  const isFlash = modelKey === "flash";
-  const name = isFlash ? "V4 Flash" : "V4 Pro";
+  const meta = MODEL_META[modelKey];
+  const icon =
+    modelKey === "flash" ? (
+      <Zap size={27} fill="currentColor" />
+    ) : modelKey === "pro" ? (
+      <Brain size={25} />
+    ) : (
+      <Eye size={25} />
+    );
+  const name = meta.name;
   const tokensText = data
     ? `${fmtInt(data.totalTokens)} Tokens`
     : state === "loading"
@@ -467,19 +503,17 @@ function UsageRow({
 
   return (
     <button className="card usage-row" onClick={onClick}>
-      <div className={`model-badge ${isFlash ? "flash" : "pro"}`}>
-        {isFlash ? <Zap size={27} fill="currentColor" /> : <Brain size={25} />}
-      </div>
+      <div className={`model-badge ${meta.tint}`}>{icon}</div>
       <div className="usage-main">
         <h2>{name}</h2>
         <div className="token-line">
           <span>{tokensText}</span>
           <div className="progress-track">
-            <i className={isFlash ? "flash-fill" : "pro-fill"} style={{ width }} />
+            <i className={meta.fill} style={{ width }} />
           </div>
         </div>
         {data && data.cacheHitTokens + data.cacheMissTokens > 0 && (
-          <span className={`cache-hit-rate ${isFlash ? "flash" : "pro"}`}>
+          <span className={`cache-hit-rate ${meta.tint}`}>
             缓存命中{" "}
             {((data.cacheHitTokens / (data.cacheHitTokens + data.cacheMissTokens)) * 100).toFixed(0)}%
           </span>
@@ -506,10 +540,10 @@ function UsageChart({
   const MIN_BAR = 3;
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    // Flash 与 Pro 合并，不分模型
-    const hit = day.flashCacheHit + day.proCacheHit;
-    const miss = day.flashCacheMiss + day.proCacheMiss;
-    const response = day.flashResponse + day.proResponse;
+    // Flash、Pro 与 Vision 合并，不分模型
+    const hit = day.flashCacheHit + day.proCacheHit + day.visionCacheHit;
+    const miss = day.flashCacheMiss + day.proCacheMiss + day.visionCacheMiss;
+    const response = day.flashResponse + day.proResponse + day.visionResponse;
     return { date: day.date, hit, miss, response, total: hit + miss + response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
@@ -1028,19 +1062,22 @@ function ModelDetailPanel({
   usageState: BalanceState;
   onBack: () => void;
 }) {
-  const isFlash = model === "flash";
+  const meta = MODEL_META[model];
   const data = usage?.models.find((item) => item.key === model) ?? null;
-  const title = isFlash ? "V4 Flash" : "V4 Pro";
-  const tintClass = isFlash ? "flash" : "pro";
+  const title = meta.name;
+  const tintClass = meta.tint;
   const cost = data ? fmtMoney(data.cost) : "—";
   const totalText = data ? fmtTokensShort(data.totalTokens) : "—";
 
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    const hit = isFlash ? day.flashCacheHit : day.proCacheHit;
-    const miss = isFlash ? day.flashCacheMiss : day.proCacheMiss;
-    const response = isFlash ? day.flashResponse : day.proResponse;
-    return { date: day.date, hit, miss, response, total: hit + miss + response };
+    const pick =
+      model === "flash"
+        ? { hit: day.flashCacheHit, miss: day.flashCacheMiss, response: day.flashResponse }
+        : model === "pro"
+          ? { hit: day.proCacheHit, miss: day.proCacheMiss, response: day.proResponse }
+          : { hit: day.visionCacheHit, miss: day.visionCacheMiss, response: day.visionResponse };
+    return { date: day.date, ...pick, total: pick.hit + pick.miss + pick.response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
   const rangeText =
@@ -1056,7 +1093,13 @@ function ModelDetailPanel({
       </button>
       <article className="card detail-hero" data-tauri-drag-region>
         <div className={`model-badge large ${tintClass}`}>
-          {isFlash ? <Zap size={34} fill="currentColor" /> : <Brain size={33} />}
+          {model === "flash" ? (
+            <Zap size={34} fill="currentColor" />
+          ) : model === "pro" ? (
+            <Brain size={33} />
+          ) : (
+            <Eye size={32} />
+          )}
         </div>
         <div>
           <h1>{title}</h1>

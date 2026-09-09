@@ -75,3 +75,6 @@ document.title'
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# ---------- Mimosa security scan ----------
+.mimosa/

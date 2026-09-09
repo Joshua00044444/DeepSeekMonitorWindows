@@ -21,6 +21,24 @@ function Resolve-VsDevCmd {
 
     foreach ($edition in @("BuildTools", "Community", "Professional", "Enterprise")) {
       $paths += (Join-Path $root "Microsoft Visual Studio\2022\$edition\Common7\Tools\VsDevCmd.bat")
+      $paths += (Join-Path $root "Microsoft Visual Studio\18\$edition\Common7\Tools\VsDevCmd.bat")
+    }
+  }
+
+  # VS 2026 (v18) 不再被旧版 vswhere 枚举，从安装器实例登记里读取 installationPath。
+  # state.json 含多语言文本，PS 5.1 下 ConvertFrom-Json 会因编码误读失败，故用正则提取纯 ASCII 路径。
+  $instanceRoot = "C:\ProgramData\Microsoft\VisualStudio\Packages\_Instances"
+  if (Test-Path -LiteralPath $instanceRoot) {
+    foreach ($stateFile in Get-ChildItem -LiteralPath $instanceRoot -Filter "state.json" -Recurse -ErrorAction SilentlyContinue) {
+      try {
+        $raw = Get-Content -LiteralPath $stateFile.FullName -Raw -Encoding UTF8
+        if ($raw -match '"installationPath"\s*:\s*"([^"]+)"') {
+          $installPath = $Matches[1] -replace '\\\\', '\'
+          $paths += (Join-Path $installPath "Common7\Tools\VsDevCmd.bat")
+        }
+      } catch {
+        continue
+      }
     }
   }
 

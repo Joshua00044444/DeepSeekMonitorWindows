@@ -38,7 +38,7 @@ DeepSeek Monitor Windows: Windows desktop adaptation of felikschu/deepseek-monit
 
 - 查询 DeepSeek API 账户余额，使用 DeepSeek 官方余额接口。
 - 查询 DeepSeek 平台用量数据，包括当月消费、模型 Token 总量、请求数、缓存命中、缓存未命中和输出 Token。
-- 支持 V4 Flash 与 V4 Pro 两类模型用量展示。
+- 支持 V4 Flash、V4 Pro 与 V4 Flash Vision Exp 三类模型用量展示。
 - 支持最近 7 天消费趋势图和模型详情页。
 - 支持 Windows 托盘入口，主窗口默认不进入任务栏。
 - 支持 API Key 保存、清除和余额验证。
@@ -191,6 +191,12 @@ Rust 后端依赖：
 ## 更新日志
 
 完整发布记录见 GitHub Releases。
+
+### v1.2.0
+
+- 新增 V4 Flash Vision Exp（deepseek-v4-flash-vision-exp）模型用量展示，主面板与模型详情页均可查看该模型的 Token 消耗、缓存命中/未命中、输出 Token 和费用。
+- 主窗口高度从 600px 调整为 640px，适配三张模型卡片的布局。
+- 本地构建产物 `DeepSeekMonitorWindows_1.2.0_x64-setup.exe`，安装包 SHA256：`216EC21D89CBFDEDB3A26348E6C7E27FE9D33C183509F4DE2413773BADE1BD96`。
 
 ### v1.1.0
 
