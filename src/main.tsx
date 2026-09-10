@@ -5,12 +5,10 @@ import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import {
   BarChart3,
-  Brain,
   CalendarDays,
   CheckCircle2,
   Clipboard,
   CreditCard,
-  Eye,
   Info,
   KeyRound,
   Power,
@@ -24,7 +22,7 @@ import {
 import "./styles.css";
 
 type ViewName = "dashboard" | "settings" | "detail";
-type ModelName = "flash" | "pro" | "vision";
+type ModelName = "flash";
 type AppConfig = {
   apiKeyConfigured: boolean;
   apiKeyPreview: string | null;
@@ -59,14 +57,6 @@ type UsageDay = {
   flashCacheHit: number;
   flashCacheMiss: number;
   flashResponse: number;
-  proTokens: number;
-  proCacheHit: number;
-  proCacheMiss: number;
-  proResponse: number;
-  visionTokens: number;
-  visionCacheHit: number;
-  visionCacheMiss: number;
-  visionResponse: number;
   totalTokens: number;
   totalCost: number;
 };
@@ -111,14 +101,6 @@ const recentUsageDays = (days: UsageDay[], count = 7): UsageDay[] => {
         flashCacheHit: 0,
         flashCacheMiss: 0,
         flashResponse: 0,
-        proTokens: 0,
-        proCacheHit: 0,
-        proCacheMiss: 0,
-        proResponse: 0,
-        visionTokens: 0,
-        visionCacheHit: 0,
-        visionCacheMiss: 0,
-        visionResponse: 0,
         totalTokens: 0,
         totalCost: 0,
       }
@@ -159,9 +141,7 @@ const refreshOptions = [
 ];
 
 const MODEL_META: Record<ModelName, { name: string; tint: string; fill: string }> = {
-  flash: { name: "V4 Flash", tint: "flash", fill: "flash-fill" },
-  pro: { name: "V4 Pro", tint: "pro", fill: "pro-fill" },
-  vision: { name: "V4 Flash Vision Exp", tint: "vision", fill: "vision-fill" },
+  flash: { name: "DeepSeek Flash", tint: "flash", fill: "flash-fill" },
 };
 
 function App() {
@@ -327,14 +307,7 @@ function DashboardPanel({
     document.documentElement.setAttribute("data-theme", next);
   };
   const flash = usage?.models.find((item) => item.key === "flash") ?? null;
-  const pro = usage?.models.find((item) => item.key === "pro") ?? null;
-  const vision = usage?.models.find((item) => item.key === "vision") ?? null;
-  const maxTokens = Math.max(
-    flash?.totalTokens ?? 0,
-    pro?.totalTokens ?? 0,
-    vision?.totalTokens ?? 0,
-    1,
-  );
+  const maxTokens = Math.max(flash?.totalTokens ?? 0, 1);
   const today = usage?.days.find((day) => day.date === todayStr()) ?? null;
   const todayCost = usageState === "ok" && today ? today.totalCost : null;
   const monthCost = usageState === "ok" && usage ? usage.monthCost : null;
@@ -379,25 +352,10 @@ function DashboardPanel({
 
       <div className="usage-stack">
         <UsageRow
-          modelKey="flash"
           data={flash}
           maxTokens={maxTokens}
           state={usageState}
           onClick={() => onDetail("flash")}
-        />
-        <UsageRow
-          modelKey="pro"
-          data={pro}
-          maxTokens={maxTokens}
-          state={usageState}
-          onClick={() => onDetail("pro")}
-        />
-        <UsageRow
-          modelKey="vision"
-          data={vision}
-          maxTokens={maxTokens}
-          state={usageState}
-          onClick={() => onDetail("vision")}
         />
       </div>
 
@@ -466,27 +424,17 @@ function BalanceCard({
 }
 
 function UsageRow({
-  modelKey,
   data,
   maxTokens,
   state,
   onClick,
 }: {
-  modelKey: ModelName;
   data: UsageModel | null;
   maxTokens: number;
   state: BalanceState;
   onClick: () => void;
 }) {
-  const meta = MODEL_META[modelKey];
-  const icon =
-    modelKey === "flash" ? (
-      <Zap size={27} fill="currentColor" />
-    ) : modelKey === "pro" ? (
-      <Brain size={25} />
-    ) : (
-      <Eye size={25} />
-    );
+  const meta = MODEL_META.flash;
   const name = meta.name;
   const tokensText = data
     ? `${fmtInt(data.totalTokens)} Tokens`
@@ -503,7 +451,9 @@ function UsageRow({
 
   return (
     <button className="card usage-row" onClick={onClick}>
-      <div className={`model-badge ${meta.tint}`}>{icon}</div>
+      <div className={`model-badge ${meta.tint}`}>
+        <Zap size={27} fill="currentColor" />
+      </div>
       <div className="usage-main">
         <h2>{name}</h2>
         <div className="token-line">
@@ -540,10 +490,9 @@ function UsageChart({
   const MIN_BAR = 3;
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    // Flash、Pro 与 Vision 合并，不分模型
-    const hit = day.flashCacheHit + day.proCacheHit + day.visionCacheHit;
-    const miss = day.flashCacheMiss + day.proCacheMiss + day.visionCacheMiss;
-    const response = day.flashResponse + day.proResponse + day.visionResponse;
+    const hit = day.flashCacheHit;
+    const miss = day.flashCacheMiss;
+    const response = day.flashResponse;
     return { date: day.date, hit, miss, response, total: hit + miss + response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
@@ -1071,13 +1020,10 @@ function ModelDetailPanel({
 
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    const pick =
-      model === "flash"
-        ? { hit: day.flashCacheHit, miss: day.flashCacheMiss, response: day.flashResponse }
-        : model === "pro"
-          ? { hit: day.proCacheHit, miss: day.proCacheMiss, response: day.proResponse }
-          : { hit: day.visionCacheHit, miss: day.visionCacheMiss, response: day.visionResponse };
-    return { date: day.date, ...pick, total: pick.hit + pick.miss + pick.response };
+    const hit = day.flashCacheHit;
+    const miss = day.flashCacheMiss;
+    const response = day.flashResponse;
+    return { date: day.date, hit, miss, response, total: hit + miss + response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
   const rangeText =
@@ -1093,13 +1039,7 @@ function ModelDetailPanel({
       </button>
       <article className="card detail-hero" data-tauri-drag-region>
         <div className={`model-badge large ${tintClass}`}>
-          {model === "flash" ? (
-            <Zap size={34} fill="currentColor" />
-          ) : model === "pro" ? (
-            <Brain size={33} />
-          ) : (
-            <Eye size={32} />
-          )}
+          <Zap size={34} fill="currentColor" />
         </div>
         <div>
           <h1>{title}</h1>
