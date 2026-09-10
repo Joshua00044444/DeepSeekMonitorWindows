@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import {
   BarChart3,
+  Brain,
   CalendarDays,
   CheckCircle2,
   Clipboard,
@@ -22,7 +23,7 @@ import {
 import "./styles.css";
 
 type ViewName = "dashboard" | "settings" | "detail";
-type ModelName = "flash";
+type ModelName = "flash" | "pro";
 type AppConfig = {
   apiKeyConfigured: boolean;
   apiKeyPreview: string | null;
@@ -57,6 +58,10 @@ type UsageDay = {
   flashCacheHit: number;
   flashCacheMiss: number;
   flashResponse: number;
+  proTokens: number;
+  proCacheHit: number;
+  proCacheMiss: number;
+  proResponse: number;
   totalTokens: number;
   totalCost: number;
 };
@@ -101,6 +106,10 @@ const recentUsageDays = (days: UsageDay[], count = 7): UsageDay[] => {
         flashCacheHit: 0,
         flashCacheMiss: 0,
         flashResponse: 0,
+        proTokens: 0,
+        proCacheHit: 0,
+        proCacheMiss: 0,
+        proResponse: 0,
         totalTokens: 0,
         totalCost: 0,
       }
@@ -142,6 +151,7 @@ const refreshOptions = [
 
 const MODEL_META: Record<ModelName, { name: string; tint: string; fill: string }> = {
   flash: { name: "DeepSeek Flash", tint: "flash", fill: "flash-fill" },
+  pro: { name: "DeepSeek V4 Pro", tint: "pro", fill: "pro-fill" },
 };
 
 function App() {
@@ -307,7 +317,8 @@ function DashboardPanel({
     document.documentElement.setAttribute("data-theme", next);
   };
   const flash = usage?.models.find((item) => item.key === "flash") ?? null;
-  const maxTokens = Math.max(flash?.totalTokens ?? 0, 1);
+  const pro = usage?.models.find((item) => item.key === "pro") ?? null;
+  const maxTokens = Math.max(flash?.totalTokens ?? 0, pro?.totalTokens ?? 0, 1);
   const today = usage?.days.find((day) => day.date === todayStr()) ?? null;
   const todayCost = usageState === "ok" && today ? today.totalCost : null;
   const monthCost = usageState === "ok" && usage ? usage.monthCost : null;
@@ -352,10 +363,18 @@ function DashboardPanel({
 
       <div className="usage-stack">
         <UsageRow
+          modelKey="flash"
           data={flash}
           maxTokens={maxTokens}
           state={usageState}
           onClick={() => onDetail("flash")}
+        />
+        <UsageRow
+          modelKey="pro"
+          data={pro}
+          maxTokens={maxTokens}
+          state={usageState}
+          onClick={() => onDetail("pro")}
         />
       </div>
 
@@ -424,17 +443,25 @@ function BalanceCard({
 }
 
 function UsageRow({
+  modelKey,
   data,
   maxTokens,
   state,
   onClick,
 }: {
+  modelKey: ModelName;
   data: UsageModel | null;
   maxTokens: number;
   state: BalanceState;
   onClick: () => void;
 }) {
-  const meta = MODEL_META.flash;
+  const meta = MODEL_META[modelKey];
+  const icon =
+    modelKey === "flash" ? (
+      <Zap size={27} fill="currentColor" />
+    ) : (
+      <Brain size={25} />
+    );
   const name = meta.name;
   const tokensText = data
     ? `${fmtInt(data.totalTokens)} Tokens`
@@ -451,9 +478,7 @@ function UsageRow({
 
   return (
     <button className="card usage-row" onClick={onClick}>
-      <div className={`model-badge ${meta.tint}`}>
-        <Zap size={27} fill="currentColor" />
-      </div>
+      <div className={`model-badge ${meta.tint}`}>{icon}</div>
       <div className="usage-main">
         <h2>{name}</h2>
         <div className="token-line">
@@ -490,9 +515,9 @@ function UsageChart({
   const MIN_BAR = 3;
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    const hit = day.flashCacheHit;
-    const miss = day.flashCacheMiss;
-    const response = day.flashResponse;
+    const hit = day.flashCacheHit + day.proCacheHit;
+    const miss = day.flashCacheMiss + day.proCacheMiss;
+    const response = day.flashResponse + day.proResponse;
     return { date: day.date, hit, miss, response, total: hit + miss + response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
@@ -1020,10 +1045,11 @@ function ModelDetailPanel({
 
   const days = recentUsageDays(usage?.days ?? []);
   const points = days.map((day) => {
-    const hit = day.flashCacheHit;
-    const miss = day.flashCacheMiss;
-    const response = day.flashResponse;
-    return { date: day.date, hit, miss, response, total: hit + miss + response };
+    const pick =
+      model === "flash"
+        ? { hit: day.flashCacheHit, miss: day.flashCacheMiss, response: day.flashResponse }
+        : { hit: day.proCacheHit, miss: day.proCacheMiss, response: day.proResponse };
+    return { date: day.date, ...pick, total: pick.hit + pick.miss + pick.response };
   });
   const maxVal = Math.max(...points.map((point) => point.total), 1);
   const rangeText =
@@ -1039,7 +1065,11 @@ function ModelDetailPanel({
       </button>
       <article className="card detail-hero" data-tauri-drag-region>
         <div className={`model-badge large ${tintClass}`}>
-          <Zap size={34} fill="currentColor" />
+          {model === "flash" ? (
+            <Zap size={34} fill="currentColor" />
+          ) : (
+            <Brain size={33} />
+          )}
         </div>
         <div>
           <h1>{title}</h1>

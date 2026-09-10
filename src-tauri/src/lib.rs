@@ -661,6 +661,10 @@ pub fn run() {
         flash_cache_hit: u64,
         flash_cache_miss: u64,
         flash_response: u64,
+        pro_tokens: u64,
+        pro_cache_hit: u64,
+        pro_cache_miss: u64,
+        pro_response: u64,
         total_tokens: u64,
         total_cost: f64,
     }
@@ -810,10 +814,12 @@ pub fn run() {
 
         let mut models = Vec::new();
         for model_usage in &amount.data.biz_data.total {
-            // 仅识别 deepseek-flash；旧名 deepseek-v4-flash / deepseek-v4-pro /
-            // deepseek-v4-flash-vision-exp 已随平台模型下线而移除
+            // 2026-09 平台现役模型名：deepseek-flash（DeepSeek-V4.1-Flash 服务）、
+            // deepseek-v4-pro（DeepSeek-V4-Pro-0813 服务）；
+            // 已下线的 deepseek-v4-flash / deepseek-v4-flash-vision-exp 不再识别
             let label = match model_usage.model.as_str() {
                 "deepseek-flash" => Some(("flash", "DeepSeek Flash")),
+                "deepseek-v4-pro" => Some(("pro", "DeepSeek V4 Pro")),
                 _ => None,
             };
             if let Some((key, name)) = label {
@@ -846,15 +852,28 @@ pub fn run() {
             let mut flash_hit = 0u64;
             let mut flash_miss = 0u64;
             let mut flash_resp = 0u64;
+            let mut pro = 0u64;
+            let mut pro_hit = 0u64;
+            let mut pro_miss = 0u64;
+            let mut pro_resp = 0u64;
             let mut total = 0u64;
             for model_usage in &day.data {
                 let (tokens, _, hit, miss, response) = token_breakdown(&model_usage.usage);
                 total += tokens;
-                if model_usage.model == "deepseek-flash" {
-                    flash += tokens;
-                    flash_hit += hit;
-                    flash_miss += miss;
-                    flash_resp += response;
+                match model_usage.model.as_str() {
+                    "deepseek-flash" => {
+                        flash += tokens;
+                        flash_hit += hit;
+                        flash_miss += miss;
+                        flash_resp += response;
+                    }
+                    "deepseek-v4-pro" => {
+                        pro += tokens;
+                        pro_hit += hit;
+                        pro_miss += miss;
+                        pro_resp += response;
+                    }
+                    _ => {}
                 }
             }
             days.push(UsageDaySummary {
@@ -863,6 +882,10 @@ pub fn run() {
                 flash_cache_hit: flash_hit,
                 flash_cache_miss: flash_miss,
                 flash_response: flash_resp,
+                pro_tokens: pro,
+                pro_cache_hit: pro_hit,
+                pro_cache_miss: pro_miss,
+                pro_response: pro_resp,
                 total_tokens: total,
                 total_cost: cost_by_date.get(&day.date).copied().unwrap_or(0.0),
             });
