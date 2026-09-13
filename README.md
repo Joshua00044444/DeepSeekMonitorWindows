@@ -10,6 +10,17 @@ DeepSeek Monitor Windows 是一个面向 Windows 的 DeepSeek API 用量监控�
 
 DeepSeek Monitor Windows: Windows desktop adaptation of felikschu/deepseek-monitor, built with Tauri, React and Rust for DeepSeek balance and usage monitoring.
 
+## 下载安装
+
+无需配置 Rust / Node 环境，直接下载安装包即可使用：
+
+- **最新版本 [v1.2.3](https://github.com/Joshua00044444/DeepSeekMonitorWindows/releases/tag/v1.2.3)**：
+  [下载 DeepSeekMonitorWindows_1.2.3_x64-setup.exe](https://github.com/Joshua00044444/DeepSeekMonitorWindows/releases/download/v1.2.3/DeepSeekMonitorWindows_1.2.3_x64-setup.exe)
+- 全部历史版本：[Releases 页面](https://github.com/Joshua00044444/DeepSeekMonitorWindows/releases)
+- 安装包 SHA256：`8BC85087BA293409D66F73B15B3D5AD1924E7E893D04CAF3AB6446D20E69B681`
+
+系统要求：Windows 10 / 11，需 Microsoft Edge WebView2 Runtime（Windows 11 通常已内置）。安装时如提示"未知发布者"，属安装包未做代码签名的正常现象，点击"仍要运行"即可。
+
 ## 页面截图
 
 ### 旧版本 UI
@@ -83,7 +94,7 @@ npm run tauri:check
 构建安装包：
 
 ```powershell
-npm run build
+npx tauri build
 ```
 
 Tauri 打包目标当前配置为 NSIS 安装包，产物位于 `src-tauri/target/release/bundle/nsis/`。
@@ -190,11 +201,12 @@ Rust 后端依赖：
 
 ## 更新日志
 
-完整发布记录见 GitHub Releases。
+完整发布记录见 [GitHub Releases](https://github.com/Joshua00044444/DeepSeekMonitorWindows/releases)。
 
 ### v1.2.3
 
 - 加回 DeepSeek V4 Pro（deepseek-v4-pro，现役模型名）用量展示，与 DeepSeek Flash（deepseek-flash）并列；已下线的 `deepseek-v4-flash`、`deepseek-v4-flash-vision-exp` 保持移除。
+- 已发布至 GitHub Release [v1.2.3](https://github.com/Joshua00044444/DeepSeekMonitorWindows/releases/tag/v1.2.3) 并标记为 Latest。
 - 本地构建产物 `DeepSeekMonitorWindows_1.2.3_x64-setup.exe`，安装包 SHA256：`8BC85087BA293409D66F73B15B3D5AD1924E7E893D04CAF3AB6446D20E69B681`。
 
 ### v1.2.2
